@@ -1,6 +1,6 @@
 # ImmortalWrt x86_64 图形化固件构建器
 
-网页勾选配置 → GitHub Actions 云端自动编译 → 下载固件。基于官方 **ImmortalWrt 24.10.6 ImageBuilder**，约 15~25 分钟出包。
+网页勾选配置 → GitHub Actions 云端自动编译 → 下载固件。基于官方 **ImmortalWrt 24.10.6 ImageBuilder**。
 
 ## 使用方法
 
