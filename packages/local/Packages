@@ -54,6 +54,20 @@ MD5Sum: dfb3118ce1dd7b45fce7ed9ccbf1b4dd
 SHA256sum: ebedb9e3e0dc0b57a33579571b50d7f87131233418831327c61b228fb7d1a666
 Description: HomeBox speed test web entry
 
+Package: luci-app-momo
+Version: 1.2.1-r1
+Depends: libc, luci-base, momo
+Conflicts: 
+Provides: 
+Section: luci
+Architecture: all
+Installed-Size: 8
+Filename: luci-app-momo_1.2.1-r1_all.ipk
+Size: 8280
+MD5Sum: 3163c635f14395d3d85849f827e716f1
+SHA256sum: 2e62a3564b79c086a0de3a9079ec7daf38642ff85432766362d1d4759d34ead0
+Description: LuCI Support for momo
+
 Package: luci-app-openclash
 Version: 0.47.071
 Depends: libc, luci-compat, dnsmasq-full, bash, curl, ca-bundle, ip-full, ruby, ruby-yaml, kmod-inet-diag, kmod-nft-tproxy, kmod-tun, unzip
@@ -67,6 +81,20 @@ Size: 7212793
 MD5Sum: c0eb3964c37fe95057c32122e685a32d
 SHA256sum: c8c2754fb7814a186b1fff174584bc598b681171fcfd78aad80910c5b65b95c6
 Description: A LuCI support for clash
+
+Package: luci-app-passwall2
+Version: 26.9.2-r1
+Depends: libc, coreutils, coreutils-base64, coreutils-nohup, coreutils-timeout, curl, ip-full, libuci-lua, lua, luci-compat, luci-lib-jsonc, lyaml, resolveip, tcping, geoview, v2ray-geoip, v2ray-geosite, unzip, luci-lua-runtime
+Conflicts: 
+Provides: luci-app-passwall2-any
+Section: luci
+Architecture: all
+Installed-Size: 335
+Filename: luci-app-passwall2_26.9.2-r1_all.ipk
+Size: 343687
+MD5Sum: 31554d4044d182117fae7c34031271d8
+SHA256sum: 3982436413bb5473d3e2310aebdbba71bb13736804dce7222f6c8feec1b6b21f
+Description: LuCI support for PassWall 2
 
 Package: luci-app-smartinfo
 Version: 1.0-r1
@@ -96,6 +124,20 @@ MD5Sum: 6436f67047619f08c77496e380334bf4
 SHA256sum: 65ab6ab45465f1afd687383b1be0c40bf54c5c52c77f1d607d9098582d97ab91
 Description: LuCI support for Tailscale
 
+Package: luci-i18n-passwall2-zh-cn
+Version: 26.9.2
+Depends: libc, luci-app-passwall2
+Conflicts: 
+Provides: luci-i18n-passwall2-zh-cn-any
+Section: luci
+Architecture: all
+Installed-Size: 19
+Filename: luci-i18n-passwall2-zh-cn_26.9.2_all.ipk
+Size: 20157
+MD5Sum: a8be8d8b69681f023c3f0bdf929e3024
+SHA256sum: 1c993d6d1548c96446d49846ce56ce9a3d671e9df4b3f2ddecc34a84d29c4db6
+Description: Translation for luci-app-passwall2 - 简体中文 (Simplified Chinese)
+
 Package: luci-i18n-tailscale-community-zh-cn
 Version: 0
 Depends: libc, luci-app-tailscale-community
@@ -109,4 +151,18 @@ Size: 4474
 MD5Sum: ce2984a825ebb99d9563a38636455647
 SHA256sum: d4029c40f9d9fe46b54d5238932d4c5eea959dbb7915efc5d764705ee3f5fe15
 Description: Translation for luci-app-tailscale-community - 简体中文 (Simplified Chinese)
+
+Package: momo
+Version: 2026.06.03-r1
+Depends: libc, ca-bundle, curl, firewall4, ip-full, kmod-inet-diag, kmod-nft-socket, kmod-nft-tproxy, kmod-tun, kmod-dummy, sing-box
+Conflicts: 
+Provides: 
+Section: net
+Architecture: x86_64
+Installed-Size: 48
+Filename: momo_2026.06.03-r1_x86_64.ipk
+Size: 49811
+MD5Sum: b283b34c3aa38c0151686b3c7511f538
+SHA256sum: f6f093322dbd6b7caa01f37b54c0ea34a033c5beb75acf9e6353c515411554ed
+Description: Transparent Proxy with sing-box on OpenWrt.
 

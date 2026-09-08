@@ -5,8 +5,16 @@ P=""
 
 add() { for p in "$@"; do P="$P $p"; done; }
 
-# ---- 用户勾选的应用(官方源 + 本仓库 packages/local 自定义源) ----
+# ---- 用户勾选的应用(官方源 + 本仓库 packages/local(24.10) / apk25(25.12) 自定义源) ----
 [ "${B_OPENCLASH:-false}" = "true" ] && add luci-app-openclash
+if [ "${B_SINGBOX:-false}" = "true" ]; then
+  add momo luci-app-momo
+  [ "${LUCI_LANG:-zh_cn}" = "zh_cn" ] && add luci-i18n-momo-zh-cn
+fi
+if [ "${B_PASSWALL2:-false}" = "true" ]; then
+  add luci-app-passwall2 sing-box xray-core
+  [ "${LUCI_LANG:-zh_cn}" = "zh_cn" ] && add luci-i18n-passwall2-zh-cn
+fi
 if [ "${B_ADGUARD:-false}" = "true" ]; then
   add adguardhome luci-app-adguardhome
 fi
@@ -22,6 +30,7 @@ if [ "${B_HOMEBOX:-false}" = "true" ]; then
   add homebox luci-app-homebox
 fi
 [ "${B_DISKMAN:-false}" = "true" ]    && add luci-app-diskman
+[ "${B_DISKMAN:-false}" = "true" ] && [ "${LUCI_LANG:-zh_cn}" = "zh_cn" ] && add luci-i18n-diskman-zh-cn
 if [ "${B_SMARTINFO:-false}" = "true" ]; then
   add smartmontools luci-app-smartinfo
 fi
