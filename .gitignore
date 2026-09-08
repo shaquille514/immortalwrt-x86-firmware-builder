@@ -1,0 +1,5 @@
+*.img
+*.img.gz
+*.ipk.tmp
+build-files/
+pkg.list

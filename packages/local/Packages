@@ -1,0 +1,112 @@
+Package: homebox
+Version: 0.1.3-r1
+Depends: libc
+Conflicts: 
+Provides: 
+Section: net
+Architecture: x86_64
+Installed-Size: 2515
+Filename: homebox_0.1.3-r1_x86_64.ipk
+Size: 2575846
+MD5Sum: 20fe3129950ec50eab4f4d93e2fe9a53
+SHA256sum: 91e71d00d54b59e6e73fa2e1ffd84877377735f61b3492c1879aff4f6ead511f
+Description: HomeBox: a toolbox for home local networks. Run a browser based
+
+Package: luci-app-adguardhome
+Version: 1.0-r9
+Depends: libc, ca-certs, curl, wget-ssl, luci-lua-runtime
+Conflicts: 
+Provides: 
+Section: luci
+Architecture: all
+Installed-Size: 104
+Filename: luci-app-adguardhome_1.0-r9_all.ipk
+Size: 107286
+MD5Sum: 3d02ef3640475fad11d0b5b7376e9f50
+SHA256sum: 20f548f1cbb1444db036567ce215a65821e6659be8a5a1879d0bc51dc2960c4e
+Description: LuCI support for AdGuardHome
+
+Package: luci-app-diskman
+Version: 0.2.13-r1
+Depends: libc, luci-compat, blkid, e2fsprogs, parted, smartmontools, dosfstools, kmod-fs-msdos, kmod-fs-ntfs3, kmod-fs-exfat, exfatprogs, exfatprogs, kmod-nls-cp932, kmod-nls-cp936, kmod-nls-cp950, btrfs-progs, lsblk, luci-lua-runtime
+Conflicts: 
+Provides: 
+Section: luci
+Architecture: all
+Installed-Size: 21
+Filename: luci-app-diskman_0.2.13-r1_all.ipk
+Size: 21699
+MD5Sum: b760190261135834b74691668658a179
+SHA256sum: 324c3e37e038f6ae1588ec7147144c934f25a7c6378736e4646b46216a85b9d0
+Description: Disk Manager interface for LuCI
+
+Package: luci-app-homebox
+Version: 1.0-r1
+Depends: libc, luci-base, homebox, luci-lua-runtime
+Conflicts: 
+Provides: 
+Section: luci
+Architecture: all
+Installed-Size: 1
+Filename: luci-app-homebox_1.0-r1_all.ipk
+Size: 1858
+MD5Sum: dfb3118ce1dd7b45fce7ed9ccbf1b4dd
+SHA256sum: ebedb9e3e0dc0b57a33579571b50d7f87131233418831327c61b228fb7d1a666
+Description: HomeBox speed test web entry
+
+Package: luci-app-openclash
+Version: 0.47.071
+Depends: libc, luci-compat, dnsmasq-full, bash, curl, ca-bundle, ip-full, ruby, ruby-yaml, kmod-inet-diag, kmod-nft-tproxy, kmod-tun, unzip
+Conflicts: 
+Provides: 
+Section: opt
+Architecture: all
+Installed-Size: 7043
+Filename: luci-app-openclash_0.47.071_all.ipk
+Size: 7212793
+MD5Sum: c0eb3964c37fe95057c32122e685a32d
+SHA256sum: c8c2754fb7814a186b1fff174584bc598b681171fcfd78aad80910c5b65b95c6
+Description: A LuCI support for clash
+
+Package: luci-app-smartinfo
+Version: 1.0-r1
+Depends: libc, luci-base, smartmontools
+Conflicts: 
+Provides: 
+Section: luci
+Architecture: all
+Installed-Size: 7
+Filename: luci-app-smartinfo_1.0-r1_all.ipk
+Size: 7175
+MD5Sum: c12e5c5cb26a81165ffa9b792d63e4f4
+SHA256sum: cf103558562e056c4e56c9071ef8777b93b84826af0ac0b0850465efd6504f2a
+Description: S.M.A.R.T. attributes and health monitor config page for LuCI
+
+Package: luci-app-tailscale-community
+Version: 0
+Depends: libc, tailscale, ip-full, luci-base
+Conflicts: 
+Provides: 
+Section: luci
+Architecture: all
+Installed-Size: 12
+Filename: luci-app-tailscale-community_0_all.ipk
+Size: 12811
+MD5Sum: 6436f67047619f08c77496e380334bf4
+SHA256sum: 65ab6ab45465f1afd687383b1be0c40bf54c5c52c77f1d607d9098582d97ab91
+Description: LuCI support for Tailscale
+
+Package: luci-i18n-tailscale-community-zh-cn
+Version: 0
+Depends: libc, luci-app-tailscale-community
+Conflicts: 
+Provides: 
+Section: luci
+Architecture: all
+Installed-Size: 4
+Filename: luci-i18n-tailscale-community-zh-cn_0_all.ipk
+Size: 4474
+MD5Sum: ce2984a825ebb99d9563a38636455647
+SHA256sum: d4029c40f9d9fe46b54d5238932d4c5eea959dbb7915efc5d764705ee3f5fe15
+Description: Translation for luci-app-tailscale-community - 简体中文 (Simplified Chinese)
+

@@ -1,0 +1,185 @@
+name: 图形化构建固件
+
+on:
+  workflow_dispatch:
+    inputs:
+      openclash:
+        description: 'OpenClash(科学上网, 已预置 Mihomo Meta 内核)'
+        type: boolean
+        default: true
+      adguard:
+        description: 'AdGuard Home(DNS 过滤去广告, 含官方 luci 启用面板)'
+        type: boolean
+        default: true
+      samba:
+        description: 'Samba 网络共享(NAS)'
+        type: boolean
+        default: true
+      tailscale:
+        description: 'Tailscale 组网(含 community luci)'
+        type: boolean
+        default: true
+      netdata:
+        description: 'Netdata 实时监控面板'
+        type: boolean
+        default: true
+      homebox:
+        description: 'HomeBox 内网测速'
+        type: boolean
+        default: true
+      diskman:
+        description: '磁盘管理(分区/格式化/挂载)'
+        type: boolean
+        default: true
+      smartinfo:
+        description: 'S.M.A.R.T 硬盘健康监控'
+        type: boolean
+        default: true
+      ttyd:
+        description: '网页终端'
+        type: boolean
+        default: true
+      upnp:
+        description: 'UPnP 端口自动转发'
+        type: boolean
+        default: false
+      argon:
+        description: 'Argon 主题(否则用默认 bootstrap)'
+        type: boolean
+        default: true
+      usb_automount:
+        description: 'USB 移动存储即插即用自动挂载(ntfs/exfat/ext4)'
+        type: boolean
+        default: true
+      wan_auto:
+        description: '首启 WAN 口自动识别(DHCP 探测, PCI 有线口优先)'
+        type: boolean
+        default: true
+      lan_ip:
+        description: 'LAN 管理 IP'
+        type: string
+        default: '192.168.52.1'
+      netmask:
+        description: 'LAN 子网掩码'
+        type: string
+        default: '255.255.255.0'
+      hostname:
+        description: '主机名'
+        type: string
+        default: 'ImmortalWrt'
+      timezone:
+        description: '时区'
+        type: choice
+        options:
+          - Asia/Shanghai
+          - Asia/Hong_Kong
+          - Asia/Taipei
+          - Asia/Tokyo
+          - Asia/Singapore
+          - UTC
+        default: Asia/Shanghai
+      luci_lang:
+        description: 'LuCI 界面语言'
+        type: choice
+        options:
+          - zh_cn
+          - en
+        default: zh_cn
+      pppoe_user:
+        description: 'PPPoE 宽带账号(留空则 WAN 用 DHCP/自动识别; 注意: 填了会烧进固件, 请确认隐私可接受)'
+        type: string
+        default: ''
+      pppoe_pass:
+        description: 'PPPoE 宽带密码(同上提示)'
+        type: string
+        default: ''
+      wan_port:
+        description: 'PPPoE/手动 WAN 绑定的物理口(pppoe 时生效)'
+        type: string
+        default: 'eth0'
+
+jobs:
+  build:
+    name: 构建 x86_64 固件
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 安装依赖
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xz-utils zstd gawk file unzip wget
+
+      - name: 生成定制配置(IP/宽带/时区等)
+        id: overlay
+        env:
+          LAN_IP: ${{ inputs.lan_ip }}
+          NETMASK: ${{ inputs.netmask }}
+          HOSTNAME: ${{ inputs.hostname }}
+          TZ_NAME: ${{ inputs.timezone }}
+          LUCI_LANG: ${{ inputs.luci_lang }}
+          PPPOE_USER: ${{ inputs.pppoe_user }}
+          PPPOE_PASS: ${{ inputs.pppoe_pass }}
+          WAN_PORT: ${{ inputs.wan_port }}
+          WAN_AUTO: ${{ inputs.wan_auto }}
+          USB_AUTOMOUNT: ${{ inputs.usb_automount }}
+        run: |
+          bash scripts/gen-overlay.sh
+
+      - name: 按勾选拼装软件包清单
+        id: packages
+        env:
+          B_OPENCLASH: ${{ inputs.openclash }}
+          B_ADGUARD: ${{ inputs.adguard }}
+          B_SAMBA: ${{ inputs.samba }}
+          B_TAILSCALE: ${{ inputs.tailscale }}
+          B_NETDATA: ${{ inputs.netdata }}
+          B_HOMEBOX: ${{ inputs.homebox }}
+          B_DISKMAN: ${{ inputs.diskman }}
+          B_SMARTINFO: ${{ inputs.smartinfo }}
+          B_TTYD: ${{ inputs.ttyd }}
+          B_UPNP: ${{ inputs.upnp }}
+          B_ARGON: ${{ inputs.argon }}
+          B_USB_AUTOMOUNT: ${{ inputs.usb_automount }}
+          LUCI_LANG: ${{ inputs.luci_lang }}
+          ROOTFS: ${{ inputs.rootfs }}
+        run: |
+          bash scripts/compose-packages.sh
+
+      - name: 下载 ImageBuilder(24.10.6 x86_64)
+        run: |
+          cd $GITHUB_WORKSPACE
+          wget -q https://downloads.immortalwrt.org/releases/24.10.6/targets/x86/64/immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64.tar.xz
+          tar xJf immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64.tar.xz
+          echo "IB=$GITHUB_WORKSPACE/immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64" >> $GITHUB_ENV
+
+      - name: 挂载自定义 ipk 源
+        run: |
+          echo "src/gz custom file://$GITHUB_WORKSPACE/packages/local" >> $IB/repositories.conf
+          cat $IB/repositories.conf
+
+      - name: 构建固件
+        run: |
+          cd $IB
+          PKGS=$(cat $GITHUB_WORKSPACE/pkg.list)
+          echo "PACKAGES = $PKGS"
+          make image PROFILE=generic PACKAGES="$PKGS" FILES="$GITHUB_WORKSPACE/build-files" V=s 2>&1 | tail -40
+          ls -lh bin/targets/x86/64/ 2>/dev/null | head -20
+
+      - name: 压缩并校验
+        run: |
+          cd $IB/bin/targets/x86/64
+          for f in *.img; do [ -f "$f" ] && gzip -9 -f "$f"; done
+          sha256sum *.gz > sha256sums.txt
+          ls -lh *.gz sha256sums.txt
+
+      - name: 上传固件产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: immortalwrt-24.10.6-custom
+          path: |
+            ${{ env.IB }}/bin/targets/x86/64/*.gz
+            ${{ env.IB }}/bin/targets/x86/64/sha256sums.txt
+          retention-days: 14
