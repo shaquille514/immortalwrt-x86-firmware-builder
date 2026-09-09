@@ -53,11 +53,4 @@ jobs:
           gh release create "$TAG" *.run \
             --repo "${{ github.repository }}" \
             --title "x86_64 功能包 .run 一键安装包 (构建 #${{ github.run_number }})" \
-            --notes "ImmortalWrt 24.10(opkg) x86_64 功能包自解压安装包, 与固件构建同源预编译 ipk。
-
-用法(在路由器上):
-  wget -O pack.run <下载地址> && sh pack.run
-  或: sh pack.run --target /tmp/pack --noexec   (只解压不装)
-
-包含: PassWall2 / Momo(sing-box) / OpenClash / HomeBox / 磁盘管理 / S.M.A.R.T / AdGuard Home / Tailscale
-安装时自动 opkg update 并从官方源补齐依赖; 仅支持 x86_64 + opkg 系统(ImmortalWrt 24.10 等)"
+            --notes "ImmortalWrt 24.10(opkg) x86_64 功能包自解压安装包。路由器上执行: wget -O pack.run <地址> && sh pack.run (或 sh pack.run --target dir --noexec 只解压)。含 PassWall2/Momo/OpenClash/HomeBox/磁盘管理/S.M.A.R.T/AdGuard Home/Tailscale, 安装自动补齐依赖"
