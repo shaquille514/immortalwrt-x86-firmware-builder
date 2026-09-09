@@ -112,10 +112,16 @@ on:
         description: 'PPPoE/手动 WAN 物理口'
         type: string
         default: 'eth0'
+      publish_release:
+        description: '构建成功后发布为 GitHub Release(固件镜像, 长期保留可下载)'
+        type: boolean
+        default: false
 
 jobs:
   build:
     name: 构建 x86_64 固件
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -219,3 +225,17 @@ jobs:
             ${{ env.IB_PATH }}/bin/targets/x86/64/*.gz
             ${{ env.IB_PATH }}/bin/targets/x86/64/sha256sums.txt
           retention-days: 14
+
+      - name: 发布 GitHub Release
+        if: ${{ github.event.inputs.publish_release == 'true' }}
+        run: |
+          cd $IB_PATH/bin/targets/x86/64
+          TAG="v${{ inputs.firmware }}-$(date +%Y%m%d)-${{ github.run_number }}"
+          gh release create "$TAG" *.gz sha256sums.txt \
+            --repo "${{ github.repository }}" \
+            --title "ImmortalWrt ${{ inputs.firmware }} 全功能固件 (构建 #${{ github.run_number }})" \
+            --notes "全功能版: PassWall2(预置 sing-box${{ inputs.firmware == '25.12.1' && '+xray' || '' }} 核心) / Momo / OpenClash / AdGuard Home / Samba / Tailscale / Netdata / HomeBox / 磁盘管理 / S.M.A.R.T 等。
+
+时间: $(date '+%Y-%m-%d %H:%M UTC')
+校验: sha256sums.txt 见附件
+刷机: 推荐 squashfs-combined.img.gz" 
