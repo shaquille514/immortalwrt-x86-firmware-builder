@@ -170,13 +170,12 @@ jobs:
           if [ "$FW" = "25.12.1" ]; then
             IBURL=https://downloads.immortalwrt.org/releases/25.12.1/targets/x86/64/immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64.tar.zst
             wget -q "$IBURL" && tar --zstd -xf immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64.tar.zst
-            echo "IBDIR=immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64" >> $GITHUB_ENV
+            echo "IB=$GITHUB_WORKSPACE/immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64" >> $GITHUB_ENV
           else
             IBURL=https://downloads.immortalwrt.org/releases/24.10.6/targets/x86/64/immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64.tar.zst
             wget -q "$IBURL" && tar --zstd -xf immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64.tar.zst
-            echo "IBDIR=immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64" >> $GITHUB_ENV
+            echo "IB=$GITHUB_WORKSPACE/immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64" >> $GITHUB_ENV
           fi
-          echo "IB=$GITHUB_WORKSPACE/$IBDIR" >> $GITHUB_ENV
 
       - name: 挂载自定义包源
         run: |
@@ -196,7 +195,9 @@ jobs:
           cd $IB
           PKGS=$(cat $GITHUB_WORKSPACE/pkg.list)
           echo "PACKAGES = $PKGS"
-          make image PROFILE=generic PACKAGES="$PKGS" FILES="$GITHUB_WORKSPACE/build-files" CONFIG_SIGNATURE_CHECK= V=s 2>&1 | tail -40
+          make image PROFILE=generic PACKAGES="$PKGS" FILES="$GITHUB_WORKSPACE/build-files" CONFIG_SIGNATURE_CHECK= V=s 2>&1 | tail -60
+          rc=${PIPESTATUS[0]}
+          [ $rc -eq 0 ] || { echo "!! make image 失败 rc=$rc"; exit $rc; }
           ls -lh bin/targets/x86/64/ 2>/dev/null | head -20
 
       - name: 压缩并校验
