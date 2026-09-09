@@ -228,6 +228,8 @@ jobs:
 
       - name: 发布 GitHub Release
         if: ${{ github.event.inputs.publish_release == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           cd $IB_PATH/bin/targets/x86/64
           TAG="v${{ inputs.firmware }}-$(date +%Y%m%d)-${{ github.run_number }}"
