@@ -50,3 +50,17 @@
 
 - 修改 `scripts/gen-overlay.sh` 可加配置项；`scripts/compose-packages.sh` 是包映射表（注意 exfat 工具在 24.10/25.12 均为 `exfat-mkfs/exfat-fsck`，勿用 exfatprogs 包名）
 - 自定义源 ipk/apk 打包需对应版本 SDK/源码构建（见 packages/ 下两个目录）
+
+## Fork 使用(给想自己出固件的人)
+
+1. **Fork** 本仓库到你的账号
+2. **启用 Actions**: fork 后进入 Settings → Actions → General → Actions permissions → 选 Allow
+   (GitHub 对 fork 默认禁用 Actions, 必须手动开)
+3. **运行**: Actions 页 → "图形化构建固件" → Run workflow → 选版本/勾功能
+4. 产物在本次运行底部 Artifacts(保留 14 天); 勾选"发布为 GitHub Release"则同时生成长期 Release
+   (tag 格式 v<版本>-<日期>-<构建号>, 含全套镜像 + sha256 校验)
+
+注意事项:
+- 仓库自包含: 自定义功能包(ipk/apk)已随仓库提交, 构建时从官方源拉 ImageBuilder + 基础包, 不依赖上游仓库
+- 自定义包为预编译快照(OpenClash/PassWall2/Momo 等固定版本), 需更新时替换 packages/local(24.10) 与 packages/apk25(25.12) 下的包并重新生成索引(见"内置软件源说明")
+- 公共仓库构建有 Actions 免费额度限制; PPPoE 密码会明文烧入固件且构建产物公开, 敏感信息请勿填写
