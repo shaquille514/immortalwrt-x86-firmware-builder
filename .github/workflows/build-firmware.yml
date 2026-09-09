@@ -127,7 +127,7 @@ jobs:
       - name: 安装依赖
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq xz-utils zstd gawk file unzip wget
+          sudo apt-get install -y -qq xz-utils zstd gawk file unzip wget qemu-utils
 
       - name: 生成定制配置(IP/宽带/时区等)
         env:
