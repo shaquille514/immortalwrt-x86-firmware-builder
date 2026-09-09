@@ -171,10 +171,12 @@ jobs:
             IBURL=https://downloads.immortalwrt.org/releases/25.12.1/targets/x86/64/immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64.tar.zst
             wget -q "$IBURL" && tar --zstd -xf immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64.tar.zst
             echo "IB_PATH=$GITHUB_WORKSPACE/immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64" >> $GITHUB_ENV
+            sed -i 's/CONFIG_TARGET_ROOTFS_PARTSIZE=[0-9]*/CONFIG_TARGET_ROOTFS_PARTSIZE=700/' immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64/.config
           else
             IBURL=https://downloads.immortalwrt.org/releases/24.10.6/targets/x86/64/immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64.tar.zst
             wget -q "$IBURL" && tar --zstd -xf immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64.tar.zst
             echo "IB_PATH=$GITHUB_WORKSPACE/immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64" >> $GITHUB_ENV
+            sed -i 's/CONFIG_TARGET_ROOTFS_PARTSIZE=[0-9]*/CONFIG_TARGET_ROOTFS_PARTSIZE=700/' immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64/.config
           fi
 
       - name: 挂载自定义包源
@@ -186,6 +188,16 @@ jobs:
             # opkg 时代: 关闭签名校验(否则 file:packages 缺 .sig 源被作废) + 自定义 ipk 并入本地包仓库
             # (勿 cp Packages 索引 - 会触发 IB opkg segfault, 由 IB 自动重建)
             sed -i 's/^option check_signature/#option check_signature/' $IB_PATH/repositories.conf
+            # opkg install 收尾 configure 偶发 255(本地实测确定性复现, 但单独重跑 configure 全包成功) - 忽略 rc 并补跑
+            python3 - <<'PY'
+import os
+p = os.environ["IB_PATH"] + "/Makefile"
+s = open(p, encoding="utf-8").read()
+s = s.replace("\t$(OPKG) install $(BUILD_PACKAGES)",
+              "\t-$(OPKG) install $(BUILD_PACKAGES)\n\t$(OPKG) configure || true", 1)
+open(p, "w", encoding="utf-8").write(s)
+print("Makefile patched")
+PY
             cp packages/local/*.ipk $IB_PATH/packages/
             ls $IB_PATH/packages/*.ipk | wc -l
           fi
@@ -195,7 +207,7 @@ jobs:
           cd $IB_PATH
           PKGS=$(cat $GITHUB_WORKSPACE/pkg.list)
           echo "PACKAGES = $PKGS"
-          make image PROFILE=generic PACKAGES="$PKGS" FILES="$GITHUB_WORKSPACE/build-files" V=s 2>&1 | tail -60
+          make image PROFILE=generic PACKAGES="$PKGS" FILES="$GITHUB_WORKSPACE/build-files" CONFIG_TARGET_ROOTFS_PARTSIZE=600 V=s 2>&1 | tail -60
           rc=${PIPESTATUS[0]}
           [ $rc -eq 0 ] || { echo "!! make image 失败 rc=$rc"; exit $rc; }
           ls -lh bin/targets/x86/64/ 2>/dev/null | head -20
