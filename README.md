@@ -78,6 +78,51 @@ sh passwall2.run --target /tmp/pw --noexec
 - **PPPoE 账号密码会明文烧入固件**（/etc/config/network），拿到固件文件即可读取。仅在你接受此风险时填写；否则留空，首次开机后在 LuCI 手填（`接口 → WAN → 协议: PPPoE`）。
 - 构建产物为公开仓库可见（Actions 日志不含你的密码输入，但固件文件本身含之）。
 
+## 固件文件怎么选（小白版）
+
+下载固件时会看到一堆文件名，其实都是由几个关键词组合的，拆开看就懂了：
+
+```
+immortalwrt-24.10.6-x86-64-generic-<文件系统>-<结构>[-efi].<格式>.gz
+```
+
+### 四个关键区别
+
+**① 文件系统：squashfs vs ext4**（影响你能不能"恢复出厂"）
+| | squashfs | ext4 |
+|---|---|---|
+| 特点 | 底层只读压缩 + 上层可读写，稳 | 整盘可读写，扩容方便 |
+| 恢复出厂 | ✅ 支持一键恢复（firstboot） | ❌ 崩了不能一键还原 |
+| 适合谁 | **大多数人选这个**，随便折腾不怕坏 | 要装很多大插件/经常扩分区的人 |
+
+**② 启动方式：带 efi vs 不带 efi**
+- `-efi`：UEFI 引导（新电脑/虚拟机默认）
+- 不带：传统 BIOS（Legacy）引导
+- **近几年的电脑/虚拟机直接选带 efi 的**；很老的主机才需要不带 efi 的
+
+**③ 结构：combined vs rootfs**
+- `combined`：**完整磁盘镜像**（含引导区），能直接刷盘启动 ← **普通用户只认这个**
+- `rootfs`：只有系统文件没有引导区，给 Docker/LXC 容器用的，**不用管**
+
+**④ 格式后缀**（对应不同刷写/虚拟化环境）
+| 后缀 | 用途 |
+|---|---|
+| `.img.gz` | **物理机刷盘**（解压后用 Rufus/balenaEtcher 写 SSD/U 盘）|
+| `.qcow2.gz` | PVE / KVM 虚拟机直接用 |
+| `.vmdk.gz` | VMware（ESXi / Workstation）|
+| `.vhdx.gz` | Hyper-V |
+| `.vdi.gz` | VirtualBox |
+| `.tar.gz` / `-rootfs` | 容器用，不用管 |
+
+### 🎯 直接抄作业（选型速查）
+| 你的情况 | 下载这个 |
+|---|---|
+| 物理小主机/软路由（UEFI 启动）| `squashfs-combined-efi.img.gz` ⭐ |
+| 物理机（老 Legacy BIOS）| `squashfs-combined.img.gz` |
+| PVE 虚拟机 | `.qcow2.gz`（或解压 `.img.gz` 导入）|
+| VMware / Hyper-V / VirtualBox | 对应 `.vmdk.gz` / `.vhdx.gz` / `.vdi.gz` |
+| 什么都看不懂 | **`squashfs-combined-efi.img.gz`** 准没错 |
+
 ## 刷机
 
 1. 解压 `.img.gz` → 用 Rufus/balenaEtcher 写入 SSD（或 dd）
