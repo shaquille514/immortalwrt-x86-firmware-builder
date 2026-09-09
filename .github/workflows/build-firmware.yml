@@ -195,7 +195,7 @@ jobs:
           cd $IB
           PKGS=$(cat $GITHUB_WORKSPACE/pkg.list)
           echo "PACKAGES = $PKGS"
-          make image PROFILE=generic PACKAGES="$PKGS" FILES="$GITHUB_WORKSPACE/build-files" CONFIG_SIGNATURE_CHECK= V=s 2>&1 | tail -60
+          make image PROFILE=generic PACKAGES="$PKGS" FILES="$GITHUB_WORKSPACE/build-files" V=s 2>&1 | tail -60
           rc=${PIPESTATUS[0]}
           [ $rc -eq 0 ] || { echo "!! make image 失败 rc=$rc"; exit $rc; }
           ls -lh bin/targets/x86/64/ 2>/dev/null | head -20
