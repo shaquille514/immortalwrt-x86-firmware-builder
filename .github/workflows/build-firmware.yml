@@ -188,16 +188,8 @@ jobs:
             # opkg 时代: 关闭签名校验(否则 file:packages 缺 .sig 源被作废) + 自定义 ipk 并入本地包仓库
             # (勿 cp Packages 索引 - 会触发 IB opkg segfault, 由 IB 自动重建)
             sed -i 's/^option check_signature/#option check_signature/' $IB_PATH/repositories.conf
-            # opkg install 收尾 configure 偶发 255(本地实测确定性复现, 但单独重跑 configure 全包成功) - 忽略 rc 并补跑
-            python3 - <<'PY'
-import os
-p = os.environ["IB_PATH"] + "/Makefile"
-s = open(p, encoding="utf-8").read()
-s = s.replace("\t$(OPKG) install $(BUILD_PACKAGES)",
-              "\t-$(OPKG) install $(BUILD_PACKAGES)\n\t$(OPKG) configure || true", 1)
-open(p, "w", encoding="utf-8").write(s)
-print("Makefile patched")
-PY
+            # opkg install 收尾 configure 偶发 255(实测确定复现但单独重跑 configure 全包成功) - 忽略 rc 并补跑
+            python3 -c "import os;p=os.environ['IB_PATH']+'/Makefile';s=open(p,encoding='utf-8').read();s=s.replace('\t\$(OPKG) install \$(BUILD_PACKAGES)','\t-\$(OPKG) install \$(BUILD_PACKAGES)\n\t\$(OPKG) configure || true',1);open(p,'w',encoding='utf-8').write(s)"
             cp packages/local/*.ipk $IB_PATH/packages/
             ls $IB_PATH/packages/*.ipk | wc -l
           fi
