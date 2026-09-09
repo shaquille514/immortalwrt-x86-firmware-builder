@@ -28,16 +28,16 @@ Description: LuCI support for AdGuardHome
 
 Package: luci-app-diskman
 Version: 0.2.13-r1
-Depends: libc, luci-compat, blkid, e2fsprogs, parted, smartmontools, dosfstools, kmod-fs-msdos, kmod-fs-ntfs3, kmod-fs-exfat, exfatprogs, exfatprogs, kmod-nls-cp932, kmod-nls-cp936, kmod-nls-cp950, btrfs-progs, lsblk, luci-lua-runtime
+Depends: libc, luci-compat, blkid, e2fsprogs, parted, smartmontools, dosfstools, kmod-fs-msdos, kmod-fs-ntfs3, kmod-fs-exfat, exfat-mkfs, exfat-fsck, kmod-nls-cp932, kmod-nls-cp936, kmod-nls-cp950, btrfs-progs, lsblk, luci-lua-runtime
 Conflicts: 
 Provides: 
 Section: luci
 Architecture: all
 Installed-Size: 21
 Filename: luci-app-diskman_0.2.13-r1_all.ipk
-Size: 21699
-MD5Sum: b760190261135834b74691668658a179
-SHA256sum: 324c3e37e038f6ae1588ec7147144c934f25a7c6378736e4646b46216a85b9d0
+Size: 21665
+MD5Sum: edbe4aaa9272dad7a9e0905302e93109
+SHA256sum: 5ab696adffc0ddb97d33aeb24a7a6563a18cf9045bb3941744bc79f1115abcc4
 Description: Disk Manager interface for LuCI
 
 Package: luci-app-homebox

@@ -181,13 +181,14 @@ jobs:
       - name: 挂载自定义包源
         run: |
           if [ "$FW" = "25.12.1" ]; then
-            # apk 时代: 自定义 apk + packages.adb 并入本地包目录
+            # apk 时代: 自定义 apk 并入本地包目录(索引由 IB 自动处理)
             cp packages/apk25/*.apk $IB/packages/
-            cp packages/apk25/packages.adb $IB/packages/
           else
-            # opkg 时代: 追加自定义源到 repositories.conf
-            echo "src/gz custom file://$GITHUB_WORKSPACE/packages/local" >> $IB/repositories.conf
-            tail -2 $IB/repositories.conf
+            # opkg 时代: 关闭签名校验(否则 file:packages 缺 .sig 源被作废) + 自定义 ipk 并入本地包仓库
+            # (勿 cp Packages 索引 - 会触发 IB opkg segfault, 由 IB 自动重建)
+            sed -i 's/^option check_signature/#option check_signature/' $IB/repositories.conf
+            cp packages/local/*.ipk $IB/packages/
+            ls $IB/packages/*.ipk | wc -l
           fi
 
       - name: 构建固件
@@ -195,7 +196,7 @@ jobs:
           cd $IB
           PKGS=$(cat $GITHUB_WORKSPACE/pkg.list)
           echo "PACKAGES = $PKGS"
-          make image PROFILE=generic PACKAGES="$PKGS" FILES="$GITHUB_WORKSPACE/build-files" V=s 2>&1 | tail -40
+          make image PROFILE=generic PACKAGES="$PKGS" FILES="$GITHUB_WORKSPACE/build-files" CONFIG_SIGNATURE_CHECK= V=s 2>&1 | tail -40
           ls -lh bin/targets/x86/64/ 2>/dev/null | head -20
 
       - name: 压缩并校验

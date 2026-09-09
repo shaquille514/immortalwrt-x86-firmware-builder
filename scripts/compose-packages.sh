@@ -12,7 +12,9 @@ if [ "${B_SINGBOX:-false}" = "true" ]; then
   [ "${LUCI_LANG:-zh_cn}" = "zh_cn" ] && add luci-i18n-momo-zh-cn
 fi
 if [ "${B_PASSWALL2:-false}" = "true" ]; then
-  add luci-app-passwall2 sing-box xray-core
+  add luci-app-passwall2 sing-box
+  # xray-core: 仅 25.12(apk) 装 - 24.10 官方 xray-core ipk 在 IB 环境 configure 必挂(本地实测)
+  [ "$FW" = "25.12.1" ] && add xray-core
   [ "${LUCI_LANG:-zh_cn}" = "zh_cn" ] && add luci-i18n-passwall2-zh-cn
 fi
 if [ "${B_ADGUARD:-false}" = "true" ]; then
@@ -39,7 +41,7 @@ fi
 
 # ---- 磁盘/USB 工具 ----
 if [ "${B_USB_AUTOMOUNT:-false}" = "true" ]; then
-  add block-mount fdisk e2fsprogs dosfstools exfatprogs kmod-fs-exfat kmod-fs-ntfs3
+  add block-mount fdisk e2fsprogs dosfstools exfat-mkfs exfat-fsck kmod-fs-exfat kmod-fs-ntfs3
 fi
 
 # ---- 主题与语言 ----
