@@ -234,8 +234,4 @@ jobs:
           gh release create "$TAG" *.gz sha256sums.txt \
             --repo "${{ github.repository }}" \
             --title "ImmortalWrt ${{ inputs.firmware }} 全功能固件 (构建 #${{ github.run_number }})" \
-            --notes "全功能版: PassWall2(预置 sing-box${{ inputs.firmware == '25.12.1' && '+xray' || '' }} 核心) / Momo / OpenClash / AdGuard Home / Samba / Tailscale / Netdata / HomeBox / 磁盘管理 / S.M.A.R.T 等。
-
-时间: $(date '+%Y-%m-%d %H:%M UTC')
-校验: sha256sums.txt 见附件
-刷机: 推荐 squashfs-combined.img.gz" 
+            --notes "全功能版: PassWall2(预置 sing-box 核心) / Momo / OpenClash / AdGuard Home / Samba / Tailscale / Netdata / HomeBox / 磁盘管理 / S.M.A.R.T 等。刷机推荐 squashfs-combined.img.gz, 校验见 sha256sums.txt"
