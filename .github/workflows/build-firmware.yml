@@ -170,29 +170,29 @@ jobs:
           if [ "$FW" = "25.12.1" ]; then
             IBURL=https://downloads.immortalwrt.org/releases/25.12.1/targets/x86/64/immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64.tar.zst
             wget -q "$IBURL" && tar --zstd -xf immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64.tar.zst
-            echo "IB=$GITHUB_WORKSPACE/immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64" >> $GITHUB_ENV
+            echo "IB_PATH=$GITHUB_WORKSPACE/immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64" >> $GITHUB_ENV
           else
             IBURL=https://downloads.immortalwrt.org/releases/24.10.6/targets/x86/64/immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64.tar.zst
             wget -q "$IBURL" && tar --zstd -xf immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64.tar.zst
-            echo "IB=$GITHUB_WORKSPACE/immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64" >> $GITHUB_ENV
+            echo "IB_PATH=$GITHUB_WORKSPACE/immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64" >> $GITHUB_ENV
           fi
 
       - name: 挂载自定义包源
         run: |
           if [ "$FW" = "25.12.1" ]; then
             # apk 时代: 自定义 apk 并入本地包目录(索引由 IB 自动处理)
-            cp packages/apk25/*.apk $IB/packages/
+            cp packages/apk25/*.apk $IB_PATH/packages/
           else
             # opkg 时代: 关闭签名校验(否则 file:packages 缺 .sig 源被作废) + 自定义 ipk 并入本地包仓库
             # (勿 cp Packages 索引 - 会触发 IB opkg segfault, 由 IB 自动重建)
-            sed -i 's/^option check_signature/#option check_signature/' $IB/repositories.conf
-            cp packages/local/*.ipk $IB/packages/
-            ls $IB/packages/*.ipk | wc -l
+            sed -i 's/^option check_signature/#option check_signature/' $IB_PATH/repositories.conf
+            cp packages/local/*.ipk $IB_PATH/packages/
+            ls $IB_PATH/packages/*.ipk | wc -l
           fi
 
       - name: 构建固件
         run: |
-          cd $IB
+          cd $IB_PATH
           PKGS=$(cat $GITHUB_WORKSPACE/pkg.list)
           echo "PACKAGES = $PKGS"
           make image PROFILE=generic PACKAGES="$PKGS" FILES="$GITHUB_WORKSPACE/build-files" V=s 2>&1 | tail -60
@@ -202,7 +202,7 @@ jobs:
 
       - name: 压缩并校验
         run: |
-          cd $IB/bin/targets/x86/64
+          cd $IB_PATH/bin/targets/x86/64
           for f in *.img; do [ -f "$f" ] && gzip -9 -f "$f"; done
           sha256sum *.gz > sha256sums.txt
           ls -lh *.gz sha256sums.txt | tail -20
@@ -212,6 +212,6 @@ jobs:
         with:
           name: immortalwrt-${{ inputs.firmware }}-custom
           path: |
-            ${{ env.IB }}/bin/targets/x86/64/*.gz
-            ${{ env.IB }}/bin/targets/x86/64/sha256sums.txt
+            ${{ env.IB_PATH }}/bin/targets/x86/64/*.gz
+            ${{ env.IB_PATH }}/bin/targets/x86/64/sha256sums.txt
           retention-days: 14
