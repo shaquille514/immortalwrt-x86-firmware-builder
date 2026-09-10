@@ -18,39 +18,81 @@ on:
         default: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     name: 打包 run 包
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: 检出仓库
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: 校验仓库内预编译包
+        run: python3 scripts/verify-package-checksums.py packages/SHA256SUMS
 
       - name: 准备 makeself
-        run: git clone -q --depth 1 https://github.com/megastep/makeself.git
+        env:
+          MAKESELF_COMMIT: 3815292f7359a4ccab8e27bdbe8a844947c51e4c
+        run: |
+          git clone -q --depth 1 --branch release-2.7.1 https://github.com/megastep/makeself.git
+          [ "$(git -C makeself rev-parse HEAD)" = "$MAKESELF_COMMIT" ] || {
+            echo "::error::makeself 标签指向发生变化"
+            exit 1
+          }
 
       - name: 打包 .run 包
+        env:
+          APPS_FILTER: ${{ inputs.apps }}
         run: |
-          bash scripts/make-runpacks.sh packages/local runpacks ./makeself/makeself.sh "${{ inputs.apps }}"
-          ls -lh runpacks/*.run
+          bash scripts/make-runpacks.sh packages/local runpacks ./makeself/makeself.sh "$APPS_FILTER"
+          cd runpacks
+          sha256sum *.run > sha256sums.txt
+          ls -lh *.run sha256sums.txt
 
       - name: 上传 Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: runpacks-x86_64
-          path: runpacks/*.run
+          path: |
+            runpacks/*.run
+            runpacks/sha256sums.txt
           retention-days: 14
 
+      - name: 生成构建来源证明
+        if: ${{ github.event.repository.private == false }}
+        uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
+        with:
+          subject-path: runpacks/*.run
+
+  release:
+    name: 发布 run 包 Release
+    if: ${{ github.event.inputs.publish_release == 'true' }}
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: 下载已验证产物
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: runpacks-x86_64
+          path: runpacks
+
       - name: 发布 GitHub Release
-        if: ${{ github.event.inputs.publish_release == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd runpacks
           TAG="runpacks-x86_64-$(date +%Y%m%d)-${{ github.run_number }}"
-          gh release create "$TAG" *.run \
+          gh release create "$TAG" *.run sha256sums.txt \
             --repo "${{ github.repository }}" \
+            --target "${{ github.sha }}" \
             --title "x86_64 功能包 .run 一键安装包 (构建 #${{ github.run_number }})" \
-            --notes "ImmortalWrt 24.10(opkg) x86_64 功能包自解压安装包。路由器上执行: wget -O pack.run <地址> && sh pack.run (或 sh pack.run --target dir --noexec 只解压)。含 PassWall2/Momo/OpenClash/HomeBox/磁盘管理/S.M.A.R.T/AdGuard Home/Tailscale, 安装自动补齐依赖"
+            --notes "适用于 ImmortalWrt 24.10.x/opkg/x86_64。请先使用 sha256sums.txt 校验，再执行 .run；包内也会验证嵌入 IPK。"

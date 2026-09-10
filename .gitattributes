@@ -1,8 +1,17 @@
 * text=auto
+
 *.sh text eol=lf
 *.py text eol=lf
-*.yml text eol=lf
 *.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+Packages text eol=lf
+SHA256SUMS text eol=lf
+.gitattributes text eol=lf
+.editorconfig text eol=lf
+
+*.apk binary
 *.ipk binary
 *.gz binary
-.gitignore text eol=lf
+*.img binary
+*.run binary

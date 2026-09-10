@@ -5,12 +5,14 @@ Conflicts:
 Provides: 
 Section: net
 Architecture: x86_64
-Installed-Size: 2515
+Installed-Size: 7731200
 Filename: homebox_0.1.3-r1_x86_64.ipk
 Size: 2575846
 MD5Sum: 20fe3129950ec50eab4f4d93e2fe9a53
 SHA256sum: 91e71d00d54b59e6e73fa2e1ffd84877377735f61b3492c1879aff4f6ead511f
 Description: HomeBox: a toolbox for home local networks. Run a browser based
+ speed/ping test (up to 10G, optimized for <=2.5G links) against
+ this router as server. Web UI served on http://<router-ip>:3322
 
 Package: luci-app-adguardhome
 Version: 1.0-r9
@@ -19,7 +21,7 @@ Conflicts:
 Provides: 
 Section: luci
 Architecture: all
-Installed-Size: 104
+Installed-Size: 378880
 Filename: luci-app-adguardhome_1.0-r9_all.ipk
 Size: 107286
 MD5Sum: 3d02ef3640475fad11d0b5b7376e9f50
@@ -33,7 +35,7 @@ Conflicts:
 Provides: 
 Section: luci
 Architecture: all
-Installed-Size: 21
+Installed-Size: 112640
 Filename: luci-app-diskman_0.2.13-r1_all.ipk
 Size: 21665
 MD5Sum: edbe4aaa9272dad7a9e0905302e93109
@@ -47,7 +49,7 @@ Conflicts:
 Provides: 
 Section: luci
 Architecture: all
-Installed-Size: 1
+Installed-Size: 10240
 Filename: luci-app-homebox_1.0-r1_all.ipk
 Size: 1858
 MD5Sum: dfb3118ce1dd7b45fce7ed9ccbf1b4dd
@@ -61,7 +63,7 @@ Conflicts:
 Provides: 
 Section: luci
 Architecture: all
-Installed-Size: 8
+Installed-Size: 51200
 Filename: luci-app-momo_1.2.1-r1_all.ipk
 Size: 8280
 MD5Sum: 3163c635f14395d3d85849f827e716f1
@@ -75,7 +77,7 @@ Conflicts:
 Provides: 
 Section: opt
 Architecture: all
-Installed-Size: 7043
+Installed-Size: 21155840
 Filename: luci-app-openclash_0.47.071_all.ipk
 Size: 7212793
 MD5Sum: c0eb3964c37fe95057c32122e685a32d
@@ -89,7 +91,7 @@ Conflicts:
 Provides: luci-app-passwall2-any
 Section: luci
 Architecture: all
-Installed-Size: 335
+Installed-Size: 1361920
 Filename: luci-app-passwall2_26.9.2-r1_all.ipk
 Size: 343687
 MD5Sum: 31554d4044d182117fae7c34031271d8
@@ -103,7 +105,7 @@ Conflicts:
 Provides: 
 Section: luci
 Architecture: all
-Installed-Size: 7
+Installed-Size: 40960
 Filename: luci-app-smartinfo_1.0-r1_all.ipk
 Size: 7175
 MD5Sum: c12e5c5cb26a81165ffa9b792d63e4f4
@@ -117,7 +119,7 @@ Conflicts:
 Provides: 
 Section: luci
 Architecture: all
-Installed-Size: 12
+Installed-Size: 51200
 Filename: luci-app-tailscale-community_0_all.ipk
 Size: 12811
 MD5Sum: 6436f67047619f08c77496e380334bf4
@@ -131,7 +133,7 @@ Conflicts:
 Provides: luci-i18n-passwall2-zh-cn-any
 Section: luci
 Architecture: all
-Installed-Size: 19
+Installed-Size: 51200
 Filename: luci-i18n-passwall2-zh-cn_26.9.2_all.ipk
 Size: 20157
 MD5Sum: a8be8d8b69681f023c3f0bdf929e3024
@@ -145,7 +147,7 @@ Conflicts:
 Provides: 
 Section: luci
 Architecture: all
-Installed-Size: 4
+Installed-Size: 20480
 Filename: luci-i18n-tailscale-community-zh-cn_0_all.ipk
 Size: 4474
 MD5Sum: ce2984a825ebb99d9563a38636455647
@@ -159,7 +161,7 @@ Conflicts:
 Provides: 
 Section: net
 Architecture: x86_64
-Installed-Size: 48
+Installed-Size: 286720
 Filename: momo_2026.06.03-r1_x86_64.ipk
 Size: 49811
 MD5Sum: b283b34c3aa38c0151686b3c7511f538

@@ -11,11 +11,11 @@ on:
           - 25.12.1
         default: 24.10.6
       openclash:
-        description: 'OpenClash(科学上网, 预置 Mihomo Meta 内核)'
+        description: 'OpenClash(科学上网; 内核需在 LuCI 中另行下载)'
         type: boolean
         default: true
       passwall2:
-        description: 'PassWall2(多协议分流, 预置 sing-box+xray 核心)'
+        description: 'PassWall2(多协议分流; 24.10 含 sing-box, 25.12 再含 xray)'
         type: boolean
         default: true
       singbox:
@@ -100,14 +100,10 @@ on:
           - zh_cn
           - en
         default: zh_cn
-      pppoe_user:
-        description: 'PPPoE 宽带账号(留空=DHCP; 填了会烧入固件, 公开仓库慎填!)'
-        type: string
-        default: ''
-      pppoe_pass:
-        description: 'PPPoE 宽带密码(同上)'
-        type: string
-        default: ''
+      pppoe_enabled:
+        description: '使用 PPPoE(仅私有仓库; 账号密码从 Actions Secrets 读取)'
+        type: boolean
+        default: false
       wan_port:
         description: 'PPPoE/手动 WAN 物理口'
         type: string
@@ -121,14 +117,19 @@ jobs:
   build:
     name: 构建 x86_64 固件
     permissions:
-      contents: write
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
       FW: ${{ inputs.firmware }}
     steps:
       - name: 检出仓库
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: 校验仓库内预编译包
+        run: python3 scripts/verify-package-checksums.py packages/SHA256SUMS
 
       - name: 安装依赖
         run: |
@@ -142,12 +143,23 @@ jobs:
           HOSTNAME: ${{ inputs.hostname }}
           TZ_NAME: ${{ inputs.timezone }}
           LUCI_LANG: ${{ inputs.luci_lang }}
-          PPPOE_USER: ${{ inputs.pppoe_user }}
-          PPPOE_PASS: ${{ inputs.pppoe_pass }}
+          PPPOE_ENABLED: ${{ inputs.pppoe_enabled }}
+          PPPOE_USER: ${{ secrets.PPPOE_USERNAME }}
+          PPPOE_PASS: ${{ secrets.PPPOE_PASSWORD }}
           WAN_PORT: ${{ inputs.wan_port }}
           WAN_AUTO: ${{ inputs.wan_auto }}
           USB_AUTOMOUNT: ${{ inputs.usb_automount }}
+          REPO_PRIVATE: ${{ github.event.repository.private }}
+          PUBLISH_RELEASE: ${{ inputs.publish_release }}
         run: |
+          if [ "$PPPOE_ENABLED" = "true" ]; then
+            [ -n "$PPPOE_USER" ] || { echo "::error::已启用 PPPoE，但未配置 Actions Secret PPPOE_USERNAME"; exit 1; }
+            [ -n "$PPPOE_PASS" ] || { echo "::error::已启用 PPPoE，但未配置 Actions Secret PPPOE_PASSWORD"; exit 1; }
+            [ "$REPO_PRIVATE" = "true" ] || { echo "::error::禁止在公开仓库把宽带凭据烧入固件，请关闭 PPPoE 并在首次启动后配置"; exit 1; }
+            [ "$PUBLISH_RELEASE" != "true" ] || { echo "::error::包含宽带凭据的固件禁止发布为公开 Release"; exit 1; }
+          else
+            unset PPPOE_USER PPPOE_PASS
+          fi
           bash scripts/gen-overlay.sh
 
       - name: 按勾选拼装软件包清单
@@ -172,18 +184,25 @@ jobs:
 
       - name: 下载并解压 ImageBuilder
         run: |
-          cd $GITHUB_WORKSPACE
+          cd "$GITHUB_WORKSPACE"
           if [ "$FW" = "25.12.1" ]; then
             IBURL=https://downloads.immortalwrt.org/releases/25.12.1/targets/x86/64/immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64.tar.zst
-            wget -q "$IBURL" && tar --zstd -xf immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64.tar.zst
-            echo "IB_PATH=$GITHUB_WORKSPACE/immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64" >> $GITHUB_ENV
-            sed -i 's/CONFIG_TARGET_ROOTFS_PARTSIZE=[0-9]*/CONFIG_TARGET_ROOTFS_PARTSIZE=700/' immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64/.config
+            IB_ARCHIVE=immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64.tar.zst
+            IB_SHA256=637c8d1cd5f3b1959eb42a0c8bb2e791687080b022a8315784e8f9b8b5238157
+            IB_DIR=immortalwrt-imagebuilder-25.12.1-x86-64.Linux-x86_64
           else
             IBURL=https://downloads.immortalwrt.org/releases/24.10.6/targets/x86/64/immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64.tar.zst
-            wget -q "$IBURL" && tar --zstd -xf immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64.tar.zst
-            echo "IB_PATH=$GITHUB_WORKSPACE/immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64" >> $GITHUB_ENV
-            sed -i 's/CONFIG_TARGET_ROOTFS_PARTSIZE=[0-9]*/CONFIG_TARGET_ROOTFS_PARTSIZE=700/' immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64/.config
+            IB_ARCHIVE=immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64.tar.zst
+            IB_SHA256=a567476384f2aa2ff55d2f7eddcb64374a988594b52abbc912ec086cba457e1e
+            IB_DIR=immortalwrt-imagebuilder-24.10.6-x86-64.Linux-x86_64
           fi
+          wget --https-only --secure-protocol=TLSv1_2 --tries=3 -q "$IBURL" -O "$IB_ARCHIVE"
+          printf '%s  %s\n' "$IB_SHA256" "$IB_ARCHIVE" | sha256sum -c -
+          tar --zstd -xf "$IB_ARCHIVE"
+          echo "IB_PATH=$GITHUB_WORKSPACE/$IB_DIR" >> "$GITHUB_ENV"
+          echo "IB_URL=$IBURL" >> "$GITHUB_ENV"
+          echo "IB_SHA256=$IB_SHA256" >> "$GITHUB_ENV"
+          sed -i 's/CONFIG_TARGET_ROOTFS_PARTSIZE=[0-9]*/CONFIG_TARGET_ROOTFS_PARTSIZE=600/' "$IB_DIR/.config"
 
       - name: 挂载自定义包源
         run: |
@@ -191,49 +210,99 @@ jobs:
             # apk 时代: 自定义 apk 并入本地包目录(索引由 IB 自动处理)
             cp packages/apk25/*.apk $IB_PATH/packages/
           else
-            # opkg 时代: 关闭签名校验(否则 file:packages 缺 .sig 源被作废) + 自定义 ipk 并入本地包仓库
-            # (勿 cp Packages 索引 - 会触发 IB opkg segfault, 由 IB 自动重建)
-            sed -i 's/^option check_signature/#option check_signature/' $IB_PATH/repositories.conf
-            # opkg install 收尾 configure 偶发 255(实测确定复现但单独重跑 configure 全包成功) - 忽略 rc 并补跑
-            python3 -c "import os;p=os.environ['IB_PATH']+'/Makefile';s=open(p,encoding='utf-8').read();s=s.replace('\t\$(OPKG) install \$(BUILD_PACKAGES)','\t-\$(OPKG) install \$(BUILD_PACKAGES)\n\t\$(OPKG) configure || true',1);open(p,'w',encoding='utf-8').write(s)"
-            cp packages/local/*.ipk $IB_PATH/packages/
-            ls $IB_PATH/packages/*.ipk | wc -l
+            # opkg 时代: 自定义 ipk 并入本地包仓库。ImageBuilder 会重建并签名本地索引。
+            # (勿 cp Packages 索引 - 让 IB 自动重建并用临时本地密钥签名)
+            # 只容忍已知的首次 configure 瞬态失败；重试仍失败时必须终止构建。
+            python3 scripts/patch-imagebuilder.py "$IB_PATH/Makefile"
+            cp packages/local/*.ipk "$IB_PATH/packages/"
+            find "$IB_PATH/packages" -maxdepth 1 -name '*.ipk' -type f | wc -l
           fi
 
       - name: 构建固件
         run: |
-          cd $IB_PATH
-          PKGS=$(cat $GITHUB_WORKSPACE/pkg.list)
+          cd "$IB_PATH"
+          PKGS=$(cat "$GITHUB_WORKSPACE/pkg.list")
           echo "PACKAGES = $PKGS"
           make image PROFILE=generic PACKAGES="$PKGS" FILES="$GITHUB_WORKSPACE/build-files" CONFIG_TARGET_ROOTFS_PARTSIZE=600 V=s 2>&1 | tail -60
           rc=${PIPESTATUS[0]}
           [ $rc -eq 0 ] || { echo "!! make image 失败 rc=$rc"; exit $rc; }
           ls -lh bin/targets/x86/64/ 2>/dev/null | head -20
 
+      - name: 验证固件包清单
+        run: |
+          cd "$IB_PATH/bin/targets/x86/64"
+          MANIFEST=$(find . -maxdepth 1 -type f -name '*-generic.manifest' -print -quit)
+          [ -n "$MANIFEST" ] || { echo "::error::构建产物缺少 firmware manifest"; exit 1; }
+          python3 "$GITHUB_WORKSPACE/scripts/verify-manifest.py" "$GITHUB_WORKSPACE/pkg.list" "$MANIFEST"
+          cp "$GITHUB_WORKSPACE/pkg.list" requested-packages.txt
+          {
+            echo "Firmware: $FW"
+            echo "Repository: $GITHUB_REPOSITORY"
+            echo "Commit: $GITHUB_SHA"
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "ImageBuilder: $IB_URL"
+            echo "ImageBuilder SHA256: $IB_SHA256"
+            echo "Requested packages: $(cat requested-packages.txt)"
+          } > build-metadata.txt
+
       - name: 压缩并校验
         run: |
-          cd $IB_PATH/bin/targets/x86/64
+          cd "$IB_PATH/bin/targets/x86/64"
           for f in *.img; do [ -f "$f" ] && gzip -9 -f "$f"; done
-          sha256sum *.gz > sha256sums.txt
-          ls -lh *.gz sha256sums.txt | tail -20
+          shopt -s nullglob
+          files=( *.gz *.manifest *.buildinfo *.json requested-packages.txt build-metadata.txt )
+          [ "${#files[@]}" -gt 0 ] || { echo "::error::没有可发布的构建产物"; exit 1; }
+          printf '%s\n' "${files[@]}" | sort | while IFS= read -r file; do sha256sum "$file"; done > sha256sums.txt
+          ls -lh "${files[@]}" sha256sums.txt | tail -30
 
       - name: 上传固件产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: immortalwrt-${{ inputs.firmware }}-custom
           path: |
             ${{ env.IB_PATH }}/bin/targets/x86/64/*.gz
+            ${{ env.IB_PATH }}/bin/targets/x86/64/*.manifest
+            ${{ env.IB_PATH }}/bin/targets/x86/64/*.buildinfo
+            ${{ env.IB_PATH }}/bin/targets/x86/64/*.json
+            ${{ env.IB_PATH }}/bin/targets/x86/64/requested-packages.txt
+            ${{ env.IB_PATH }}/bin/targets/x86/64/build-metadata.txt
             ${{ env.IB_PATH }}/bin/targets/x86/64/sha256sums.txt
           retention-days: 14
 
+      - name: 生成构建来源证明
+        if: ${{ github.event.repository.private == false }}
+        uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
+        with:
+          subject-path: |
+            ${{ env.IB_PATH }}/bin/targets/x86/64/*.gz
+            ${{ env.IB_PATH }}/bin/targets/x86/64/*.manifest
+
+  release:
+    name: 发布固件 Release
+    if: ${{ github.event.inputs.publish_release == 'true' }}
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: 下载已验证产物
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: immortalwrt-${{ inputs.firmware }}-custom
+          path: release-assets
+
       - name: 发布 GitHub Release
-        if: ${{ github.event.inputs.publish_release == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cd $IB_PATH/bin/targets/x86/64
+          cd release-assets
           TAG="v${{ inputs.firmware }}-$(date +%Y%m%d)-${{ github.run_number }}"
-          gh release create "$TAG" *.gz sha256sums.txt \
+          shopt -s nullglob
+          assets=( *.gz *.manifest *.buildinfo *.json requested-packages.txt build-metadata.txt sha256sums.txt )
+          [ "${#assets[@]}" -gt 0 ] || { echo "::error::没有可发布的构建产物"; exit 1; }
+          gh release create "$TAG" "${assets[@]}" \
             --repo "${{ github.repository }}" \
-            --title "ImmortalWrt ${{ inputs.firmware }} 全功能固件 (构建 #${{ github.run_number }})" \
-            --notes "全功能版: PassWall2(预置 sing-box 核心) / Momo / OpenClash / AdGuard Home / Samba / Tailscale / Netdata / HomeBox / 磁盘管理 / S.M.A.R.T 等。刷机推荐 squashfs-combined.img.gz, 校验见 sha256sums.txt"
+            --target "${{ github.sha }}" \
+            --title "ImmortalWrt ${{ inputs.firmware }} 自定义固件 (构建 #${{ github.run_number }})" \
+            --notes-file build-metadata.txt

@@ -1,6 +1,6 @@
 # ImmortalWrt x86_64 图形化固件构建器
 
-网页勾选配置 → GitHub Actions 云端自动编译 → 下载固件。基于官方 **ImmortalWrt ImageBuilder**，约 15~25 分钟出包。
+网页勾选配置 → GitHub Actions 云端自动编译 → 下载固件。基于官方 **ImmortalWrt ImageBuilder**，约 15~25 分钟出包。构建会校验 ImageBuilder、自带预编译包、最终包清单和产物哈希；公开仓库还会生成 GitHub 构建来源证明。
 
 支持固件线：**24.10.6**（内核 6.6，opkg 包格式）与 **25.12.1**（内核 6.12，apk 包格式），Run workflow 时下拉选择。
 
@@ -14,6 +14,7 @@
 2. 左侧选择 **"图形化构建固件"** 工作流 → 右侧 **Run workflow**
 3. 选择 **ImmortalWrt 版本**（24.10.6 / 25.12.1）→ 按需勾选/填写 → 点绿色按钮启动
    - 勾选 **"发布为 GitHub Release"** 可把固件发布到长期 Release（不勾则只存 Artifacts 14 天）
+   - PPPoE 建议首次开机后配置。确需预置时，只能在**私有仓库**的 `Settings → Secrets and variables → Actions` 中配置 `PPPOE_USERNAME` 和 `PPPOE_PASSWORD`，再勾选 PPPoE；含凭据的构建禁止发布 Release
 4. 构建完成后：本次运行底部 **Artifacts** 下载 `immortalwrt-<版本>-custom`；或到 **Releases** 页下载同名 Release（tag `v<版本>-<日期>-<构建号>`，含 sha256sums.txt）
 
 ### 2) 生成 run 一键安装包（免刷机补装功能）
@@ -26,15 +27,15 @@
 
 | 分组 | 选项 |
 |---|---|
-| 科学上网(勾选式) | **OpenClash**(预置 Meta 内核) / **PassWall2**(多协议分流, 预置 sing-box+xray 核心) / **Momo**(sing-box 独立透明代理图形面板) |
+| 科学上网(勾选式) | **OpenClash**(LuCI 面板，Mihomo 内核需在面板中另行下载) / **PassWall2**(24.10 含 sing-box；25.12 再含 xray-core) / **Momo**(sing-box 独立透明代理图形面板) |
 | 常用应用(勾选式) | AdGuard Home / Samba 共享 / Tailscale(含 community luci) / Netdata 监控 / HomeBox 测速 / 磁盘管理(含 exfat 工具) / S.M.A.R.T / 网页终端 / UPnP / Argon 主题 / USB 自动挂载 |
-| 网络定制 | **WAN 自动识别开关** / PPPoE 宽带账号密码(留空=DHCP 自动识别) / WAN 物理口(PPPoE 时) / LAN IP / 子网掩码 / 主机名 |
+| 网络定制 | **WAN 自动识别开关** / PPPoE 开关与 WAN 物理口 / LAN IP / 子网掩码 / 主机名 |
 | 系统定制 | 时区(上海/香港/台北/东京/新加坡/UTC) / LuCI 语言(中文/English)（产物同时含 squashfs 与 ext4 两套, 推荐刷 squashfs）|
 
 ## 功能包 .run 一键安装包
 
 > 适用：**已在运行 ImmortalWrt 24.10(opkg) x86_64**、不想刷机重装、想补装 PassWall2/Momo 等功能的用户
-> 原理：makeself 自解压包（内含预编译 ipk + 安装脚本），与固件构建**同源同版本**，无第三方中转
+> 原理：makeself 自解压包（内含仓库中的预编译 ipk + 安装脚本）。打包过程不临时抓取其他第三方二进制，但这些 ipk 本身仍是需要信任和审计的第三方预编译快照。
 
 | 包 | 内容 |
 |---|---|
@@ -47,36 +48,41 @@
 | `adguardhome.run` | AdGuard Home(DNS 过滤) luci 面板 |
 | `tailscale.run` | Tailscale 组网(community luci) |
 
-**安装方法**（路由器 SSH 执行）：
+**安装方法**（从某个明确的 `runpacks-x86_64-*` Release 下载 `.run` 与 `sha256sums.txt`，不要使用混合固件 Release 的 `latest/download`）：
 ```bash
-wget -O passwall2.run https://github.com/<你的用户名>/immortalwrt-x86-firmware-builder/releases/latest/download/passwall2.run
-sh passwall2.run                  # 一键安装(自动 opkg update + 官方源补齐依赖)
+# 两个文件放在同一目录后，先只校验目标文件
+grep ' passwall2.run$' sha256sums.txt | sha256sum -c -
+sh passwall2.run --check          # 再校验自解压载荷
+sh passwall2.run                  # 安装（自动 opkg update + 官方源补齐依赖）
 # 或只解压不安装:
 sh passwall2.run --target /tmp/pw --noexec
 ```
 
-> 注意：仅支持 **x86_64 + opkg 系统**（ImmortalWrt 24.10 等，不支持 25.12/apk 与新架构）；安装需联网（依赖从官方源拉取）；如 LuCI 不显示新菜单请强刷页面。
+> 注意：安装器默认只接受 **ImmortalWrt 24.10.x + opkg + x86_64**（不支持 25.12/apk 与其他架构）；安装需联网（依赖从官方源拉取）。确认兼容后可用 `ALLOW_UNSUPPORTED=1` 绕过系统版本检查，只有确需覆盖已装包时才使用 `FORCE_REINSTALL=1`。
 
 ## 内置软件源说明
 
-- **官方源**：随所选版本自动匹配 ImmortalWrt packages/luci/kmods（Samba、Tailscale、Netdata、AdGuardHome、sing-box/xray-core 等守护进程）
+- **官方源**：随所选版本自动匹配 ImmortalWrt packages/luci/kmods（Samba、Tailscale、Netdata、AdGuardHome、sing-box 等；xray-core 仅加入 25.12 构建）
 - **自定义源**：
   - `packages/local/`（24.10.6，opkg/ipk）：预编译 ipk + Packages 索引（OpenClash 0.47.x、PassWall2 26.9.x、Momo 1.2.1、luci-app-adguardhome、HomeBox 0.1.3、Diskman、SmartInfo、Tailscale-community luci 等）
   - `packages/apk25/`（25.12.1，apk）：预编译 apk（同批包，版本随 25.12 构建链更新）
-  - 如需更新自定义包：放入对应目录后 24.10 侧执行 `python3 scripts/gen-feed-index.py packages/local` 重新生成索引并提交（25.12 侧 apk 由构建时并入 IB 本地包目录）
+  - 如需更新自定义包：放入对应目录，执行 `python3 scripts/gen-feed-index.py packages/local` 重新生成 24.10 索引，再从仓库根目录重建 `packages/SHA256SUMS`；CI 会拒绝索引或哈希未同步的提交
   - **run 包数据源即 `packages/local/`**——更新 ipk 后重跑"生成 run 一键安装包"即可出新版 .run
+
+预编译包的哈希只能证明文件与仓库记录一致，不能替代上游来源证明或源码审计。维护要求见 [`packages/README.md`](packages/README.md)。
 
 ## 默认行为(与源码版一致)
 
-- 首启 **WAN 自动识别**：DHCP 探测每个有线口(PCI 优先)，第一个获得 DHCP 的口设为 WAN，其余桥接进 LAN
+- 首启 **WAN 自动识别**：DHCP 探测每个有线口(PCI 优先)，第一个真正获得租约的口设为 WAN；未探测到时保留脚本，下次启动重试
 - 填了 PPPoE 账号时自动关闭自动识别并按指定口拨号
 - USB 移动盘即插即用自动挂载 `/mnt/sdX1`（ntfs3/exfat/ext4）
 - LAN 默认 `192.168.52.1`，LuCI 中文
 
-## ⚠️ 隐私提示
+## ⚠️ 隐私与安全提示
 
-- **PPPoE 账号密码会明文烧入固件**（/etc/config/network），拿到固件文件即可读取。仅在你接受此风险时填写；否则留空，首次开机后在 LuCI 手填（`接口 → WAN → 协议: PPPoE`）。
-- 构建产物为公开仓库可见（Actions 日志不含你的密码输入，但固件文件本身含之）。
+- **PPPoE 账号密码会明文烧入固件**（`/etc/config/network`），拿到固件即可读取。项目只允许私有仓库通过 Actions Secrets 预置，并禁止这类构建发布 Release；仓库协作者仍可能下载 Artifact，因此首启后手工配置最安全。
+- 下载后应使用随产物提供的 `sha256sums.txt` 校验。GitHub 构建来源证明能关联产物与工作流，但不代表仓库内第三方预编译包已经源码审计。
+- 刷机后首次登录没有密码，请立即设置强密码；涉及外网暴露前还应检查防火墙和已启用服务。
 
 ## 固件文件怎么选（小白版）
 
@@ -132,8 +138,9 @@ immortalwrt-24.10.6-x86-64-generic-<文件系统>-<结构>[-efi].<格式>.gz
 ## 本地复现/贡献
 
 - 修改 `scripts/gen-overlay.sh` 可加配置项；`scripts/compose-packages.sh` 是包映射表（注意 exfat 工具在 24.10/25.12 均为 `exfat-mkfs/exfat-fsck`，勿用 exfatprogs 包名）
-- `scripts/make-runpacks.sh` 是 .run 打包脚本（GROUPS 表即应用清单，注意勿用 `GROUPS` 作变量名——bash 内建特殊数组）
+- `scripts/make-runpacks.sh` 是 .run 打包脚本，`APPS` 数组是应用清单
 - 自定义源 ipk/apk 打包需对应版本 SDK/源码构建（见 packages/ 下两个目录）
+- 提交前运行 `sha256sum -c packages/SHA256SUMS` 和 `bash tests/test-scripts.sh`；推送与 PR 也会自动执行相同自检
 
 ## Fork 使用(给想自己出固件的人)
 
@@ -148,4 +155,4 @@ immortalwrt-24.10.6-x86-64-generic-<文件系统>-<结构>[-efi].<格式>.gz
 注意事项:
 - 仓库自包含: 自定义功能包(ipk/apk)已随仓库提交, 构建时从官方源拉 ImageBuilder + 基础包, 不依赖上游仓库
 - 自定义包为预编译快照(OpenClash/PassWall2/Momo 等固定版本), 需更新时替换 packages/local(24.10) 与 packages/apk25(25.12) 下的包并重新生成索引(见"内置软件源说明"), 然后重跑两个 workflow 即出新版
-- 公共仓库构建有 Actions 免费额度限制; PPPoE 密码会明文烧入固件且构建产物公开, 敏感信息请勿填写
+- 公共仓库构建有 Actions 免费额度限制；PPPoE 预置只允许私有仓库通过 `PPPOE_USERNAME` / `PPPOE_PASSWORD` Secrets 使用

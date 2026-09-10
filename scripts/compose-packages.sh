@@ -1,6 +1,14 @@
 #!/bin/bash
 # 依据工作流勾选输入组装 PACKAGES 清单 (运行于 Actions runner)
 set -e
+[ -n "${GITHUB_WORKSPACE:-}" ] && [ "$GITHUB_WORKSPACE" != "/" ] || {
+  echo "错误: GITHUB_WORKSPACE 未设置或不安全" >&2
+  exit 1
+}
+case "${FW:-}" in
+  24.10.6|25.12.1) ;;
+  *) echo "错误: 不支持的 FW: ${FW:-<空>}" >&2; exit 1 ;;
+esac
 P=""
 
 add() { for p in "$@"; do P="$P $p"; done; }

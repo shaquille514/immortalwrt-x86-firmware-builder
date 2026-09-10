@@ -11,6 +11,9 @@ APPS_FILTER=$4
   echo "用法: $0 <ipk目录> <输出目录> <makeself.sh> [apps]"
   exit 1
 }
+[ -d "$SRC" ] || { echo "IPK 目录不存在: $SRC" >&2; exit 1; }
+[ -f "$MAKESELF" ] || { echo "makeself 脚本不存在: $MAKESELF" >&2; exit 1; }
+[ "$OUT" != "/" ] || { echo "拒绝使用根目录作为输出目录" >&2; exit 1; }
 mkdir -p "$OUT"
 
 # 每组: 名称|说明|包文件通配
@@ -25,21 +28,29 @@ APPS=(
   "tailscale|Tailscale 组网(community luci)|luci-app-tailscale-community_*.ipk luci-i18n-tailscale-community-zh-cn_*.ipk"
 )
 
+if [ -n "$APPS_FILTER" ]; then
+  IFS=',' read -r -a requested_apps <<< "$APPS_FILTER"
+  for requested in "${requested_apps[@]}"; do
+    valid=0
+    for entry in "${APPS[@]}"; do
+      [ "${entry%%|*}" = "$requested" ] && valid=1
+    done
+    [ "$valid" -eq 1 ] || { echo "!! 未知应用: $requested" >&2; exit 1; }
+  done
+fi
+
 for entry in "${APPS[@]}"; do
-  name=$(echo "$entry" | cut -d'|' -f1)
-  rest=$(echo "$entry" | cut -d'|' -f2-)
-  desc=$(echo "$rest" | cut -d'|' -f1)
-  pats=$(echo "$rest" | cut -d'|' -f2-)
+  IFS='|' read -r name desc pats <<< "$entry"
   if [ -n "$APPS_FILTER" ]; then
     ok=0
-    for a in $(echo "$APPS_FILTER" | tr ',' ' '); do
+    for a in "${requested_apps[@]}"; do
       [ "$a" = "$name" ] && ok=1
     done
-    [ $ok = 1 ] || continue
+    [ "$ok" -eq 1 ] || continue
   fi
 
-  work="$OUT/work-$name"
-  rm -rf "$work" && mkdir -p "$work/main"
+  work=$(mktemp -d "$OUT/work-$name.XXXXXX")
+  mkdir -p "$work/main"
   found=0
   for p in $pats; do
     # shellcheck disable=SC2086
@@ -49,8 +60,9 @@ for entry in "${APPS[@]}"; do
       found=1
     done
   done
-  if [ $found = 0 ]; then
+  if [ "$found" -eq 0 ]; then
     echo "!! $name: 无匹配 ipk, 跳过"
+    rm -rf "$work"
     continue
   fi
 
@@ -64,23 +76,40 @@ for entry in "${APPS[@]}"; do
 arch=$(uname -m)
 [ "$arch" = "x86_64" ] || { echo "!! 仅支持 x86_64 架构 (当前: $arch)"; exit 1; }
 command -v opkg >/dev/null 2>&1 || { echo "!! 未找到 opkg - 本包适用于 ImmortalWrt 24.10/opkg 系系统"; exit 1; }
+. /etc/openwrt_release 2>/dev/null || true
+if [ "${DISTRIB_ID:-}" != "ImmortalWrt" ] || [ "${DISTRIB_RELEASE#24.10}" = "$DISTRIB_RELEASE" ]; then
+  [ "${ALLOW_UNSUPPORTED:-0}" = "1" ] || {
+    echo "!! 仅支持 ImmortalWrt 24.10.x；如已自行确认兼容，可设置 ALLOW_UNSUPPORTED=1"
+    exit 1
+  }
+fi
 cd "$(dirname "$0")" 2>/dev/null || cd /tmp
+command -v sha256sum >/dev/null 2>&1 || { echo "!! 缺少 sha256sum，无法验证安装包"; exit 1; }
+sha256sum -c SHA256SUMS || { echo "!! 安装包完整性校验失败"; exit 1; }
 echo ">>> 更新软件源索引..."
 opkg update >/dev/null 2>&1 || echo "(源更新失败, 继续尝试本地安装 - 依赖需从官方源解析时可能失败)"
 echo ">>> 安装 $(ls main/*.ipk 2>/dev/null | wc -l) 个包 (依赖自动从官方源补齐)..."
-opkg install --force-reinstall main/*.ipk
+opkg_args=""
+[ "${FORCE_REINSTALL:-0}" = "1" ] && opkg_args="--force-reinstall"
+# shellcheck disable=SC2086
+opkg install $opkg_args main/*.ipk
 rc=$?
 if [ $rc = 0 ]; then
   echo ">>> ✅ 安装完成! 如 LuCI 未显示新菜单请刷新页面 (Ctrl+F5)"
 else
-  echo ">>> ⚠️ 安装返回 $rc, 可重试: opkg install --force-reinstall $(pwd)/main/*.ipk"
+  echo ">>> ⚠️ 安装返回 $rc；确认版本兼容后可设置 FORCE_REINSTALL=1 重试"
 fi
 exit $rc
 EOF
   chmod +x "$work/install.sh"
 
-  # makeself 打包 (ipk 本身已压缩, 用 --nocomp 免二次压缩; --nomd5 避免 nocomp 模式校验误报)
-  "$MAKESELF" --nox11 --nomd5 --nocomp "$work" "$OUT/$name.run" \
+  (
+    cd "$work"
+    sha256sum main/*.ipk > SHA256SUMS
+  )
+
+  # ipk 本身已压缩；使用 SHA256 校验自解压载荷，避免只依赖 CRC。
+  "$MAKESELF" --nox11 --nomd5 --sha256 --nocomp "$work" "$OUT/$name.run" \
     "$name - $desc (x86_64, ImmortalWrt opkg)" ./install.sh >/dev/null
   echo "✔ $OUT/$name.run"
   rm -rf "$work"
