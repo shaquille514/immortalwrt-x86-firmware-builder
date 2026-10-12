@@ -27,7 +27,7 @@
 
 | 分组 | 选项 |
 |---|---|
-| 科学上网(勾选式) | **OpenClash**(LuCI 面板，Mihomo 内核需在面板中另行下载) / **PassWall2**(24.10 含 sing-box；25.12 再含 xray-core) / **Momo**(sing-box 独立透明代理图形面板) |
+| 科学上网(勾选式) | **OpenClash**(LuCI 面板，Mihomo 内核需在面板中另行下载) / **PassWall2**(24.10 含 sing-box；25.12 再含 xray-core) / **Momo**(sing-box 独立透明代理图形面板；独立中文语言包仅用于 25.12，避免 24.10 因缺包而构建失败) |
 | 常用应用(勾选式) | AdGuard Home / Samba 共享 / Tailscale(含 community luci) / Netdata 监控 / HomeBox 测速 / 磁盘管理(含 exfat 工具) / S.M.A.R.T / 网页终端 / UPnP / Argon 主题 / USB 自动挂载 |
 | 网络定制 | **WAN 自动识别开关** / PPPoE 开关与 WAN 物理口 / LAN IP / 子网掩码 / 主机名 |
 | 系统定制 | 时区(上海/香港/台北/东京/新加坡/UTC) / LuCI 语言(中文/English)（产物同时含 squashfs 与 ext4 两套, 推荐刷 squashfs）|

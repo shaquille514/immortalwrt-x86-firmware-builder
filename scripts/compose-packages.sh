@@ -17,7 +17,9 @@ add() { for p in "$@"; do P="$P $p"; done; }
 [ "${B_OPENCLASH:-false}" = "true" ] && add luci-app-openclash
 if [ "${B_SINGBOX:-false}" = "true" ]; then
   add momo luci-app-momo
-  [ "${LUCI_LANG:-zh_cn}" = "zh_cn" ] && add luci-i18n-momo-zh-cn
+  # 该独立语言包仅随 25.12 的 apk 源提供；24.10 的本地 ipk 源没有此包。
+  # 不能把它加入 24.10 清单，否则 ImageBuilder 会因找不到包而终止整个构建。
+  [ "$FW" = "25.12.1" ] && [ "${LUCI_LANG:-zh_cn}" = "zh_cn" ] && add luci-i18n-momo-zh-cn
 fi
 if [ "${B_PASSWALL2:-false}" = "true" ]; then
   add luci-app-passwall2 sing-box

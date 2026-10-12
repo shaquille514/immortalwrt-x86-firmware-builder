@@ -78,6 +78,14 @@ GITHUB_WORKSPACE="$pkg_ws" FW=25.12.1 B_PASSWALL2=true LUCI_LANG=zh_cn \
   bash "$REPO_ROOT/scripts/compose-packages.sh" >/dev/null
 assert_word "$pkg_ws/pkg.list" xray-core
 assert_word "$pkg_ws/pkg.list" luci-i18n-passwall2-zh-cn
+GITHUB_WORKSPACE="$pkg_ws" FW=24.10.6 B_SINGBOX=true LUCI_LANG=zh_cn \
+  bash "$REPO_ROOT/scripts/compose-packages.sh" >/dev/null
+assert_word "$pkg_ws/pkg.list" momo
+assert_word "$pkg_ws/pkg.list" luci-app-momo
+assert_no_word "$pkg_ws/pkg.list" luci-i18n-momo-zh-cn
+GITHUB_WORKSPACE="$pkg_ws" FW=25.12.1 B_SINGBOX=true LUCI_LANG=zh_cn \
+  bash "$REPO_ROOT/scripts/compose-packages.sh" >/dev/null
+assert_word "$pkg_ws/pkg.list" luci-i18n-momo-zh-cn
 
 echo "[5/8] manifest 完整性"
 printf 'alpha beta\n' > "$TMP_ROOT/requested.txt"
