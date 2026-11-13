@@ -62,6 +62,12 @@ sh passwall2.run --target /tmp/pw --noexec
 
 ## 内置软件源说明
 
+### eMudhra 证书事件防护
+
+固件构建会按固定公钥指纹阻断 2026 年 10 月 eMudhra 事件的八个中间 CA 密钥及其信任路径，包含 Sectigo 交叉签名路径；打包前清理系统 CA 存储，打包后检查 rootfs tar，失败时停止发布。Release 会附带 `emudhra-ca-audit.json`。只依赖被禁用旧链的网站可能验证失败；应用私有证书库和容器需分别更新。详情见 [security/README.md](security/README.md)。
+
+**上游更新范围：** 固件工作流仅手动运行，ImageBuilder 固定为下列版本；本地预编译 IPK/APK 也固定。Dependabot 每周检查的是 GitHub Actions 依赖，不会自动更新固件版本、插件快照或已刷入设备的证书。
+
 - **官方源**：随所选版本自动匹配 ImmortalWrt packages/luci/kmods（Samba、Tailscale、Netdata、AdGuardHome、sing-box 等；xray-core 仅加入 25.12 构建）
 - **自定义源**：
   - `packages/local/`（24.10.6，opkg/ipk）：预编译 ipk + Packages 索引（OpenClash 0.47.x、PassWall2 26.9.x、Momo 1.2.1、luci-app-adguardhome、HomeBox 0.1.3、Diskman、SmartInfo、Tailscale-community luci 等）

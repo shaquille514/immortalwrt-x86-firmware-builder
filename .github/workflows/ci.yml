@@ -30,3 +30,6 @@ jobs:
 
       - name: 运行脚本测试
         run: bash tests/test-scripts.sh
+
+      - name: 验证 eMudhra 证书阻断
+        run: python3 -m unittest discover -s tests -p 'test_ca_policy.py' -v
