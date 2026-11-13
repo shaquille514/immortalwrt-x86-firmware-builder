@@ -204,6 +204,9 @@ jobs:
           echo "IB_SHA256=$IB_SHA256" >> "$GITHUB_ENV"
           sed -i 's/CONFIG_TARGET_ROOTFS_PARTSIZE=[0-9]*/CONFIG_TARGET_ROOTFS_PARTSIZE=600/' "$IB_DIR/.config"
 
+      - name: 安装 eMudhra 证书阻断检查
+        run: python3 scripts/patch-imagebuilder-ca.py "$IB_PATH/Makefile"
+
       - name: 挂载自定义包源
         run: |
           if [ "$FW" = "25.12.1" ]; then
@@ -231,6 +234,13 @@ jobs:
       - name: 验证固件包清单
         run: |
           cd "$IB_PATH/bin/targets/x86/64"
+          [ -s emudhra-ca-audit.json ] || { echo "::error::缺少 eMudhra CA 阻断报告"; exit 1; }
+          shopt -s nullglob
+          rootfs_archives=( *-rootfs.tar.gz )
+          [ "${#rootfs_archives[@]}" -gt 0 ] || { echo "::error::缺少可检查的 rootfs tar 产物"; exit 1; }
+          for rootfs_archive in "${rootfs_archives[@]}"; do
+            python3 "$GITHUB_WORKSPACE/scripts/harden-ca-store.py" --check-tar "$rootfs_archive"
+          done
           MANIFEST=$(find . -maxdepth 1 -type f -name '*-generic.manifest' -print -quit)
           [ -n "$MANIFEST" ] || { echo "::error::构建产物缺少 firmware manifest"; exit 1; }
           python3 "$GITHUB_WORKSPACE/scripts/verify-manifest.py" "$GITHUB_WORKSPACE/pkg.list" "$MANIFEST"
@@ -242,6 +252,8 @@ jobs:
             echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo "ImageBuilder: $IB_URL"
             echo "ImageBuilder SHA256: $IB_SHA256"
+            echo "CA policy: emudhra-2026-10-17 (direct and Sectigo cross-signed paths)"
+            echo "CA policy SHA256: $(sha256sum "$GITHUB_WORKSPACE/security/emudhra-denylist.json" | cut -d ' ' -f 1)"
             echo "Requested packages: $(cat requested-packages.txt)"
           } > build-metadata.txt
 

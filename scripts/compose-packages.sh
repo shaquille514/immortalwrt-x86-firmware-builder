@@ -13,6 +13,9 @@ P=""
 
 add() { for p in "$@"; do P="$P $p"; done; }
 
+# System trust store is required for the build-time eMudhra incident policy.
+add ca-bundle
+
 # ---- 用户勾选的应用(官方源 + 本仓库 packages/local(24.10) / apk25(25.12) 自定义源) ----
 [ "${B_OPENCLASH:-false}" = "true" ] && add luci-app-openclash
 if [ "${B_SINGBOX:-false}" = "true" ]; then
